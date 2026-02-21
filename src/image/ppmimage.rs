@@ -23,14 +23,21 @@ impl PpmImage {
 
     pub fn from_file(file: File) -> Result<PpmImage, PpmError> {
         let mut reader = BufReader::new(file);
-        let mut bytes = vec![];
-        reader.read_to_end(&mut bytes);
+        let mut file = vec![];
+        reader.read_to_end(&mut file)?;
+        let mut file_iter = file.into_iter();
 
-        let mut buffer = vec![];
+        let signature: Vec<u8> = file_iter.by_ref().take(2).collect();
 
-        buffer.extend(bytes.take(2));
+        if signature.as_slice() != [b'P', b'6'] {
+            return Err(PpmError::IncorrectSignature);
+        }
 
-        if buffer.as_slice() != [b'P', b'6'] {}
+        while file_iter
+            .next()
+            .ok_or(PpmError::UnexpectedEOF)?
+            .is_ascii_whitespace()
+        {}
 
         Ok(PpmImage {
             width: 0,
@@ -45,6 +52,10 @@ impl PpmImage {
 pub enum PpmError {
     #[error("Ppm image signature incorrect")]
     IncorrectSignature,
+
     #[error("Ppm image io error: {}", .0)]
     Io(#[from] std::io::Error),
+
+    #[error("Ppm image file ends unexpectedly")]
+    UnexpectedEOF,
 }
