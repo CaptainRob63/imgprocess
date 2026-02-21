@@ -1,7 +1,8 @@
-use std::error::Error;
 use std::fmt;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
+
+use thiserror::Error;
 
 pub struct PpmImage {
     width: u32,
@@ -11,7 +12,7 @@ pub struct PpmImage {
 }
 
 impl PpmImage {
-    pub fn new(width:u32, height:u32, maxval:u16, raster:Vec<u8>) -> PpmImage {
+    pub fn new(width: u32, height: u32, maxval: u16, raster: Vec<u8>) -> PpmImage {
         PpmImage {
             width,
             height,
@@ -21,28 +22,29 @@ impl PpmImage {
     }
 
     pub fn from_file(file: File) -> Result<PpmImage, PpmError> {
-        let reader = BufReader::new(file);
+        let mut reader = BufReader::new(file);
+        let mut bytes = vec![];
+        reader.read_to_end(&mut bytes);
+
+        let mut buffer = vec![];
+
+        buffer.extend(bytes.take(2));
+
+        if buffer.as_slice() != [b'P', b'6'] {}
+
         Ok(PpmImage {
             width: 0,
             height: 0,
             maxval: 0,
-            raster: vec!(0)
+            raster: vec![0],
         })
-
-    }
-
-}
-
-#[derive(Debug)]
-pub struct PpmError {
-    message: String,
-}
-
-
-impl fmt::Display for PpmError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.message)
     }
 }
 
-impl Error for PpmError {}
+#[derive(Error, Debug)]
+pub enum PpmError {
+    #[error("Ppm image signature incorrect")]
+    IncorrectSignature,
+    #[error("Ppm image io error: {}", .0)]
+    Io(#[from] std::io::Error),
+}
