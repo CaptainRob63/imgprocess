@@ -48,6 +48,14 @@ impl PpmImage {
     }
 }
 
+fn next_n<I: Iterator>(iterator: &mut I, n: u32) -> Option<Vec<I::Item>> {
+    let mut vec = vec![];
+    for i in 1..n {
+        vec.push(iterator.next()?);
+    }
+    Some(vec)
+}
+
 #[derive(Error, Debug)]
 pub enum PpmError {
     #[error("Ppm image signature incorrect")]
